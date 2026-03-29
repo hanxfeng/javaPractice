@@ -1,5 +1,6 @@
 package com.example.javaPractice.Controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.javaPractice.Entity.Category;
@@ -8,6 +9,8 @@ import com.example.javaPractice.Service.CategoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/category")
@@ -64,5 +67,21 @@ public class CategoryController {
     public Result<String> update(@RequestBody Category category) {
         categoryService.updateById(category);
         return  Result.success("修改成功");
+    }
+
+    /**
+     * 根据条件查询分类数据
+     */
+    @GetMapping("/list")
+    public Result<List<Category>> list(Category category) {
+        // 创建条件构造器
+        LambdaQueryWrapper<Category> qw = new LambdaQueryWrapper<Category>();
+        // 创建条件
+        qw.eq(category.getType() != null,Category::getType,category.getType());
+        // 添加排序条件
+        qw.orderByAsc(Category::getSort).orderByDesc(Category::getUpdateTime);
+
+        List<Category> list = categoryService.list(qw);
+        return Result.success(list);
     }
 }

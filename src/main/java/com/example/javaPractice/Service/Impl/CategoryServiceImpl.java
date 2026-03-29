@@ -7,7 +7,7 @@ import com.example.javaPractice.Entity.Dish;
 import com.example.javaPractice.Entity.Setmeal;
 import com.example.javaPractice.Service.CategoryService;
 import com.example.javaPractice.Service.DishService;
-import com.example.javaPractice.Service.setmealService;
+import com.example.javaPractice.Service.SetmealService;
 import com.example.javaPractice.mapper.CategoryMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -17,7 +17,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
     @Autowired
     private DishService dishService;
     @Autowired
-    private setmealService setmealService;
+    private SetmealService setmealService;
 
     /**
      * 根据 id 删除分类，如果关联了菜品或套餐，那么返回 “该分类关联菜品或套餐，请取消关联后再试”
@@ -34,7 +34,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         if (countDish > 0) {
             throw new ClassCastException("该分类关联菜品或套餐，请取消关联后再试");
         }
-        // 查询是否关联了套擦
+        // 查询是否关联了套餐
         LambdaQueryWrapper<Setmeal> setmeaLambdaQueryWrapper = new LambdaQueryWrapper<>();
         // 根据 categoryId 进行查询
         setmeaLambdaQueryWrapper.eq(Setmeal::getCategoryId,id);
