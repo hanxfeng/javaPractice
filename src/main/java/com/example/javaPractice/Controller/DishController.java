@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.javaPractice.Entity.Category;
 import com.example.javaPractice.Entity.Dish;
+import com.example.javaPractice.Entity.DishFlavor;
 import com.example.javaPractice.Entity.Result;
 import com.example.javaPractice.Service.CategoryService;
 import com.example.javaPractice.Service.DishFlavorService;
@@ -102,7 +103,7 @@ public class DishController {
     }
 
     @GetMapping("/list")
-    public Result<List<Dish>> list(Dish dish) {
+    public Result<List<DishDto>> list(Dish dish) {
 
         // 构造查询条件
         LambdaQueryWrapper<Dish> qw = new LambdaQueryWrapper<>();
@@ -112,7 +113,36 @@ public class DishController {
         // 添加排序条件
         qw.orderByAsc(Dish::getSort).orderByDesc(Dish::getUpdateTime);
         List<Dish> list = dishService.list(qw);
-        return Result.success(list);
+
+        // 添加规格数据
+        List<DishDto> dishDtoList = list.stream().map((item) -> {
+            DishDto dishDto = new DishDto();
+
+            BeanUtils.copyProperties(item,dishDto);
+
+            Long categoryId = item.getCategoryId();
+
+            Category category = categoryService.getById(categoryId);
+
+            if (category != null) {
+                String categoryName = category.getName();
+                dishDto.setName(categoryName);
+            }
+
+            // 获取当前菜品id
+            Long dishId = item.getId();
+
+            LambdaQueryWrapper<DishFlavor> qw2 = new LambdaQueryWrapper<>();
+            qw2.eq(DishFlavor::getDishId,dishId);
+
+            List<DishFlavor> dishFlavors = dishFlavorService.list(qw2);
+
+            dishDto.setFlavors(dishFlavors);
+
+            return dishDto;
+        }).collect(Collectors.toList());
+
+        return Result.success(dishDtoList);
 
     }
 
