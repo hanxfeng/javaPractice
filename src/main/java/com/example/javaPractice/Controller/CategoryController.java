@@ -23,6 +23,7 @@ public class CategoryController {
      * @param category
      * @return
      */
+    @PostMapping
     public Result<String> save(@RequestBody Category category){
         categoryService.save(category);
         return Result.success("新增分类成功");

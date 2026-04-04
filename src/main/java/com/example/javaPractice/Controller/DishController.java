@@ -10,6 +10,7 @@ import com.example.javaPractice.Service.CategoryService;
 import com.example.javaPractice.Service.DishFlavorService;
 import com.example.javaPractice.Service.DishService;
 import com.example.javaPractice.dto.DishDto;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +20,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/dish")
+@Slf4j
 public class DishController {
     @Autowired
     private DishService dishService;
@@ -34,8 +36,9 @@ public class DishController {
      * @param dishDto
      * @return
      */
-    @PostMapping("/")
+    @PostMapping
     public Result<String> save (@RequestBody DishDto dishDto) {
+        log.info(dishDto.toString());
         dishService.saveWithFlavor(dishDto);
         return Result.success("新增菜品成功");
     }
@@ -102,6 +105,11 @@ public class DishController {
         return Result.success("修改菜品成功");
     }
 
+    /**
+     * 用于对菜品进行分页查询
+     * @param dish
+     * @return
+     */
     @GetMapping("/list")
     public Result<List<DishDto>> list(Dish dish) {
 
@@ -144,6 +152,23 @@ public class DishController {
 
         return Result.success(dishDtoList);
 
+    }
+
+    /**
+     * 用于删除菜品
+     * @param ids
+     * @return
+     */
+    @DeleteMapping
+    public Result<String> delete(Long ids) {
+        if (ids == null) {
+            return Result.error("菜品ID不能为空");
+        }
+        boolean removed = dishService.removeById(ids);
+        if (!removed) {
+            return Result.error("删除失败，菜品不存在或已被删除");
+        }
+        return Result.success("删除菜品成功");
     }
 
 }

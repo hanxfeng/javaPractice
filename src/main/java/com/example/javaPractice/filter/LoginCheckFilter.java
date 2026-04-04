@@ -34,7 +34,10 @@ public class LoginCheckFilter implements Filter {
                 "/employee/login",
                 "/employee/logout",
                 "/backend/**",
-                "/front/**"
+                "/front/**",
+                "/user/sendMsg",
+                "/user/login",
+                "/common/**"
         };
 
         // 判断本次请求是否需要处理
@@ -43,16 +46,26 @@ public class LoginCheckFilter implements Filter {
         // 如果 check 返回 true,不需要处理，直接放行
         if (check){
             log.info("本次请求{}不需要处理",request.getRequestURI());
-            filterChain.doFilter(servletRequest,servletResponse);
+            filterChain.doFilter(request,response);
             return;
         }
 
-        // 如果返回 false 判断是否登陆，如果已登陆，直接放行
+        // 判断员工是否登陆，如果已登陆，直接放行
         if (request.getSession().getAttribute("employee") != null) {
             log.info("用户已登陆");
             Long employeeId = (Long) request.getSession().getAttribute("employee");
             BaseContext.setCurrentId(employeeId);
-            filterChain.doFilter(servletRequest,servletResponse);
+            filterChain.doFilter(request,response);
+            return;
+        }
+
+        // 判断移动端客户是否登陆
+        // 如果返回 false 判断是否登陆，如果已登陆，直接放行
+        if (request.getSession().getAttribute("user") != null) {
+            log.info("用户已登陆");
+            Long userId = (Long) request.getSession().getAttribute("user");
+            BaseContext.setCurrentId(userId);
+            filterChain.doFilter(request,response);
             return;
         }
         // 如果未登陆，则返回未登录结果，具体写法根据前端来定

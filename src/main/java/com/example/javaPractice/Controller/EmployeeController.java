@@ -111,7 +111,7 @@ public class EmployeeController {
         Page<Employee> pageInfo = new Page<>(page, pageSize);
         // 构建条件构造器
         LambdaQueryWrapper<Employee> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.like(StringUtils.isEmpty(name),Employee::getName,name);
+        queryWrapper.like(!StringUtils.isEmpty(name),Employee::getName,name);
         // 添加排序条件
         queryWrapper.orderByDesc(Employee::getUpdateTime);
 
@@ -141,7 +141,7 @@ public class EmployeeController {
      * @param id
      * @return
      */
-    @GetMapping("/{id")
+    @GetMapping("/{id}")
     public Result<Employee> getById(@PathVariable Long id) {
         Employee employee = employeeMapper.selectById(id);
         if (employee == null) {
