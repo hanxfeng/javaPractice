@@ -133,7 +133,7 @@ public class DishController {
             Category category = categoryService.getById(categoryId);
 
             if (category != null) {
-                String categoryName = category.getName();
+                String categoryName = item.getName();
                 dishDto.setName(categoryName);
             }
 

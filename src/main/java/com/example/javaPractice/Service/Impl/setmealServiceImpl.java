@@ -9,6 +9,7 @@ import com.example.javaPractice.common.CustomException;
 import com.example.javaPractice.dto.SetmealDto;
 import com.example.javaPractice.mapper.SetmealMapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +23,7 @@ public class setmealServiceImpl extends ServiceImpl<SetmealMapper, Setmeal> impl
      * @param setmealDto
      */
 
+    @Autowired
     private SetmealDishService setmealDishService;
 
     @Override

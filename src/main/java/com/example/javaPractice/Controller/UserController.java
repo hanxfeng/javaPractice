@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.example.javaPractice.Entity.Result;
 import com.example.javaPractice.Entity.User;
 import com.example.javaPractice.Service.UserService;
+import com.example.javaPractice.common.BaseContext;
 import com.example.javaPractice.utils.ValidateCodeUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,11 +29,12 @@ public class UserController {
      * @param user
      * @return
      */
+    @PostMapping("/sendMsg")
     public Result<String> sendMsg(@RequestBody User user, HttpSession httpSession) {
         // 获取手机号
         String phone = user.getPhone();
 
-        if (StringUtils.isEmpty(phone)) {
+        if (!StringUtils.isEmpty(phone)) {
             // 生成随机四位验证码
             String code = ValidateCodeUtils.generateValidateCode(4).toString();
 
@@ -61,7 +63,11 @@ public class UserController {
         String code = user.get("code").toString();
 
         // 从 Session 中获取保存的验证码1
-        String codeInSession = session.getAttribute(phone).toString();
+        Object codeObj = session.getAttribute(phone);
+        if (codeObj == null) {
+            return Result.error("验证码已失效，请重新获取");
+        }
+        String codeInSession = codeObj.toString();
 
         // 进行验证码比对
         if (code != null && codeInSession.equals(code)) {
@@ -76,16 +82,14 @@ public class UserController {
                 // 自动进行注册
                 User user2 = new User();
                 user2.setPhone(phone);
+                user2.setStatus(1);
                 userService.save(user2);
                 user1 = user2;
             }
-
+            session.setAttribute("user",user1.getId());
             return Result.success(user1);
         }
         return Result.error("登陆失败");
-
-
-
 
     }
 }
