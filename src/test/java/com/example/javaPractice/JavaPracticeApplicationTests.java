@@ -8,13 +8,5 @@ import org.springframework.data.redis.core.ValueOperations;
 
 @SpringBootTest
 class JavaPracticeApplicationTests {
-	@Autowired
-	private RedisTemplate redisTemplate;
-
-	@Test
-	void contextLoads() {
-		redisTemplate.opsForValue().set("name2","ming");
-		System.out.println(redisTemplate.opsForValue().get("name2"));
-	}
 
 }

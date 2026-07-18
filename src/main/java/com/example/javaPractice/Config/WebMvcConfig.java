@@ -9,8 +9,9 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupp
 
 import java.util.List;
 
+// 已检查，书写正确
 @Slf4j
-@Configuration // 表明这个类是配置类
+@Configuration
 public class WebMvcConfig extends WebMvcConfigurationSupport {
     /**
      * 设置静态资源映射1

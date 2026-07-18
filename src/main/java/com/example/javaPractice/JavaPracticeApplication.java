@@ -7,8 +7,9 @@ import org.springframework.boot.web.servlet.ServletComponentScan;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
+// 已检查，书写正确
 @SpringBootApplication
-@MapperScan("com/example/javaPractice/mapper")
+@MapperScan("com.example.javaPractice.mapper")
 @ServletComponentScan
 @EnableTransactionManagement
 @EnableCaching
