@@ -36,7 +36,7 @@ public class CategoryController {
         LambdaQueryWrapper<Category> qw = new LambdaQueryWrapper<>();
         qw.eq(Category::getName, category.getName());
         if (categoryMapper.selectOne(qw) != null) {
-            return R.error("该菜品已存在");
+            return R.error("该分类已存在");
         }
         categoryMapper.insert(category);
         return R.success("新增分类成功");
@@ -47,8 +47,10 @@ public class CategoryController {
      */
     @GetMapping("/page")
     public R<Page<Category>> page(@RequestParam int page, int pageSize) {
+        // 已检查，书写正确
         Page<Category> newPage = new Page<>(page, pageSize);
         newPage.addOrder(OrderItem.desc("sort"));
+
         return R.success(categoryMapper.selectPage(newPage, null));
     }
 
@@ -61,7 +63,7 @@ public class CategoryController {
         LambdaQueryWrapper<Setmeal> qw2 = new LambdaQueryWrapper<>();
         qw1.eq(Dish::getCategoryId, id);
         qw2.eq(Setmeal::getCategoryId, id);
-        if ((dishMapper.selectOne(qw1) != null) || (setmealMapper.selectOne(qw2) != null)) {
+        if ((dishMapper.selectCount(qw1) > 0) || (setmealMapper.selectCount(qw2) > 0)) {
             return R.error("该分类关联菜品或套餐，请取消关联后再试");
         }
         categoryMapper.deleteById(id);
@@ -73,12 +75,15 @@ public class CategoryController {
      */
     @PutMapping
     public R<String> update(@RequestBody Category category) {
+        // 已检查，书写正确
         LambdaQueryWrapper<Category> qw = new LambdaQueryWrapper<>();
         qw.eq(Category::getId, category.getId());
+
         if (categoryMapper.selectOne(qw) == null) {
             return R.error("该分类不存在，无法修改");
         }
         categoryMapper.updateById(category);
+
         return R.success("修改成功");
     }
 
@@ -87,14 +92,15 @@ public class CategoryController {
      */
     @GetMapping("/list")
     public R<List<Category>> list(Category category) {
+        // 已检查，书写正确
         Integer type = category.getType();
+
         if (type == null) {
             return R.success(categoryMapper.selectList(null));
         }
-        else {
-            LambdaQueryWrapper<Category> qw = new LambdaQueryWrapper<>();
-            qw.eq(Category::getType, type);
-            return R.success(categoryMapper.selectList(qw));
-        }
+
+        LambdaQueryWrapper<Category> qw = new LambdaQueryWrapper<>();
+        qw.eq(Category::getType, type);
+        return R.success(categoryMapper.selectList(qw));
     }
 }
