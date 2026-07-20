@@ -97,7 +97,20 @@ public class SetmealController {
      */
     @DeleteMapping
     public R<String> delete(@RequestParam List<Long> ids) {
-        return null;
+        for (Long id : ids) {
+            Setmeal setmeal = setmealMapper.selectById(id);
+            if (setmeal.getStatus() == 1) {
+                R.error("套餐"+ setmeal.getName() + "正在售卖，不能删除");
+            }
+        }
+
+        for (Long id : ids) {
+            setmealMapper.deleteById(id);
+            LambdaQueryWrapper<SetmealDish> qw = new LambdaQueryWrapper<>();
+            qw.eq(SetmealDish::getSetmealId, id);
+            setmealDishMapper.delete(qw);
+        }
+        return R.success("套餐数据删除成功");
     }
 
     /**
@@ -105,7 +118,11 @@ public class SetmealController {
      */
     @GetMapping("/list")
     public R<List<Setmeal>> list(Setmeal setmeal) {
-        return null;
+        LambdaQueryWrapper<Setmeal> qw = new LambdaQueryWrapper<>();
+        qw.eq(setmeal.getCategoryId() != null, Setmeal::getCategoryId, setmeal.getCategoryId());
+        qw.eq(setmeal.getStatus() != null, Setmeal::getStatus, setmeal.getStatus());
+        List<Setmeal> setmealList = setmealMapper.selectList(qw);
+        return R.success(setmealList);
     }
 
     /**
@@ -113,6 +130,13 @@ public class SetmealController {
      */
     @PostMapping("/status/{status}")
     public R<String> updateStatus(@PathVariable Integer status, @RequestParam Long ids) {
-        return null;
+        Setmeal setmeal = setmealMapper.selectById(ids);
+        if (setmeal == null) {
+            return R.error("该套餐不存在");
+        }
+
+        setmeal.setStatus(status);
+        setmealMapper.updateById(setmeal);
+        return R.success("修改成功");
     }
 }
