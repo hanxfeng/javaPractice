@@ -993,8 +993,7 @@
     "id": "10",
     "userId": "1",
     "dishId": "1",
-    "number": 0,
-    ...
+    "number": 0
   }
 }
 ```
