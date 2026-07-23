@@ -1099,8 +1099,7 @@
   "data": {
     "id": "1",
     "userId": "1",
-    "consignee": "张三",
-    ...
+    "consignee": "张三"
   }
 }
 ```
