@@ -1260,7 +1260,7 @@
 
 ---
 
-### 9.2 移动端用户登录
+### 9.2 /*
 
 - **URL**: `POST /user/login`
 - **Content-Type**: `application/json`
