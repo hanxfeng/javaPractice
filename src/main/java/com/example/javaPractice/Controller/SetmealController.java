@@ -13,6 +13,8 @@ import com.example.javaPractice.mapper.SetmealDishMapper;
 import com.example.javaPractice.mapper.SetmealMapper;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
 
@@ -36,6 +38,7 @@ public class SetmealController {
      * 新增套餐
      */
     @PostMapping
+    @CacheEvict(value = "setmealCache", allEntries = true)
     public R<String> save(@RequestBody SetmealDto setmealDto) {
         // 已检查，书写正确
         LambdaQueryWrapper<Setmeal> qw = new LambdaQueryWrapper<>();
@@ -96,6 +99,7 @@ public class SetmealController {
      * 删除套餐
      */
     @DeleteMapping
+    @CacheEvict(value = "setmealCache", allEntries = true)
     public R<String> delete(@RequestParam List<Long> ids) {
         for (Long id : ids) {
             Setmeal setmeal = setmealMapper.selectById(id);
@@ -117,6 +121,7 @@ public class SetmealController {
      * 根据条件查询套餐数据
      */
     @GetMapping("/list")
+    @Cacheable(value = "setmealCache", key = "#setmeal.categoryId + '_' + #setmeal.status")
     public R<List<Setmeal>> list(Setmeal setmeal) {
         LambdaQueryWrapper<Setmeal> qw = new LambdaQueryWrapper<>();
         qw.eq(setmeal.getCategoryId() != null, Setmeal::getCategoryId, setmeal.getCategoryId());
@@ -129,6 +134,7 @@ public class SetmealController {
      * 修改套餐售卖状态
      */
     @PostMapping("/status/{status}")
+    @CacheEvict(value = "setmealCache", allEntries = true)
     public R<String> updateStatus(@PathVariable Integer status, @RequestParam Long ids) {
         Setmeal setmeal = setmealMapper.selectById(ids);
         if (setmeal == null) {
