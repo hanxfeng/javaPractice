@@ -4,13 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.OrderItem;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.javaPractice.Entity.Category;
-import com.example.javaPractice.Entity.Dish;
 import com.example.javaPractice.Entity.R;
-import com.example.javaPractice.Entity.Setmeal;
 import com.example.javaPractice.Service.CategoryService;
-import com.example.javaPractice.mapper.CategoryMapper;
-import com.example.javaPractice.mapper.DishMapper;
-import com.example.javaPractice.mapper.SetmealMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -22,13 +17,7 @@ import java.util.List;
 @RequestMapping("/category")
 public class CategoryController {
     @Autowired
-    private CategoryMapper categoryMapper;
-
-    @Autowired
-    private DishMapper dishMapper;
-
-    @Autowired
-    private SetmealMapper setmealMapper;
+    private CategoryService categoryService;
 
     /**
      * 新增菜品或套餐分类
@@ -38,10 +27,10 @@ public class CategoryController {
     public R<String> save(@RequestBody Category category) {
         LambdaQueryWrapper<Category> qw = new LambdaQueryWrapper<>();
         qw.eq(Category::getName, category.getName());
-        if (categoryMapper.selectOne(qw) != null) {
+        if (categoryService.getOne(qw) != null) {
             return R.error("该分类已存在");
         }
-        categoryMapper.insert(category);
+        categoryService.save(category);
         return R.success("新增分类成功");
     }
 
@@ -54,7 +43,7 @@ public class CategoryController {
         Page<Category> newPage = new Page<>(page, pageSize);
         newPage.addOrder(OrderItem.desc("sort"));
 
-        return R.success(categoryMapper.selectPage(newPage, null));
+        return R.success(categoryService.page(newPage, null));
     }
 
     /**
@@ -63,14 +52,7 @@ public class CategoryController {
     @DeleteMapping
     @CacheEvict(value = "categoryCache", allEntries = true)
     public R<String> delete(Long id) {
-        LambdaQueryWrapper<Dish> qw1 = new LambdaQueryWrapper<>();
-        LambdaQueryWrapper<Setmeal> qw2 = new LambdaQueryWrapper<>();
-        qw1.eq(Dish::getCategoryId, id);
-        qw2.eq(Setmeal::getCategoryId, id);
-        if ((dishMapper.selectCount(qw1) > 0) || (setmealMapper.selectCount(qw2) > 0)) {
-            return R.error("该分类关联菜品或套餐，请取消关联后再试");
-        }
-        categoryMapper.deleteById(id);
+        categoryService.categoryRemove(id);
         return R.success("删除成功");
     }
 
@@ -84,10 +66,10 @@ public class CategoryController {
         LambdaQueryWrapper<Category> qw = new LambdaQueryWrapper<>();
         qw.eq(Category::getId, category.getId());
 
-        if (categoryMapper.selectOne(qw) == null) {
+        if (categoryService.getOne(qw) == null) {
             return R.error("该分类不存在，无法修改");
         }
-        categoryMapper.updateById(category);
+        categoryService.updateById(category);
 
         return R.success("修改成功");
     }
@@ -102,11 +84,11 @@ public class CategoryController {
         Integer type = category.getType();
 
         if (type == null) {
-            return R.success(categoryMapper.selectList(null));
+            return R.success(categoryService.list(null));
         }
 
         LambdaQueryWrapper<Category> qw = new LambdaQueryWrapper<>();
         qw.eq(Category::getType, type);
-        return R.success(categoryMapper.selectList(qw));
+        return R.success(categoryService.list(qw));
     }
 }

@@ -6,16 +6,14 @@ import com.example.javaPractice.Entity.Category;
 import com.example.javaPractice.Entity.R;
 import com.example.javaPractice.Entity.Setmeal;
 import com.example.javaPractice.Entity.SetmealDish;
+import com.example.javaPractice.Service.CategoryService;
+import com.example.javaPractice.Service.SetmealDishService;
 import com.example.javaPractice.Service.SetmealService;
 import com.example.javaPractice.dto.SetmealDto;
-import com.example.javaPractice.mapper.CategoryMapper;
-import com.example.javaPractice.mapper.SetmealDishMapper;
-import com.example.javaPractice.mapper.SetmealMapper;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -26,13 +24,13 @@ import java.util.List;
 public class SetmealController {
 
     @Autowired
-    private SetmealMapper setmealMapper;
+    private SetmealService setmealService;
 
     @Autowired
-    private SetmealDishMapper setmealDishMapper;
+    private SetmealDishService setmealDishService;
 
     @Autowired
-    private CategoryMapper categoryMapper;
+    private CategoryService categoryService;
 
     /**
      * 新增套餐
@@ -41,21 +39,7 @@ public class SetmealController {
     @CacheEvict(value = "setmealCache", allEntries = true)
     public R<String> save(@RequestBody SetmealDto setmealDto) {
         // 已检查，书写正确
-        LambdaQueryWrapper<Setmeal> qw = new LambdaQueryWrapper<>();
-        qw.eq(Setmeal::getName, setmealDto.getName());
-
-        if (setmealMapper.selectOne(qw) != null) {
-            return R.error("该套餐已存在");
-        }
-
-        setmealMapper.insert(setmealDto);
-
-        List<SetmealDish> setmealDishList = setmealDto.getSetmealDishes();
-        Long setmealId = setmealMapper.selectOne(qw).getId();
-        for (SetmealDish setmealDish : setmealDishList) {
-            setmealDish.setSetmealId(setmealId);
-            setmealDishMapper.insert(setmealDish);
-        }
+        setmealService.saveWithDish(setmealDto);
 
         return R.success("新增套餐成功");
     }
@@ -69,7 +53,7 @@ public class SetmealController {
         Page<Setmeal> newPage = new Page<>(page, pageSize);
         LambdaQueryWrapper<Setmeal> qw = new LambdaQueryWrapper<>();
         qw.like(name != null, Setmeal::getName, name);
-        Page<Setmeal> returnPage = setmealMapper.selectPage(newPage, qw);
+        Page<Setmeal> returnPage = setmealService.page(newPage, qw);
         // 已经获得 setmeal 需要查询 setmeal 对应的菜品和套餐名称，然后将其组合为 setmealDto
         Page<SetmealDto> setmealDtoPage = new Page<>();
         BeanUtils.copyProperties(returnPage, setmealDtoPage, "records");
@@ -80,11 +64,11 @@ public class SetmealController {
 
             LambdaQueryWrapper<SetmealDish> qw2 = new LambdaQueryWrapper<>();
             qw2.eq(SetmealDish::getSetmealId, setmeal.getId());
-            List<SetmealDish> setmealDishList = setmealDishMapper.selectList(qw2);
+            List<SetmealDish> setmealDishList = setmealDishService.list(qw2);
 
             LambdaQueryWrapper<Category> qw3 = new LambdaQueryWrapper<>();
             qw3.eq(Category::getId, setmeal.getCategoryId());
-            String categoryName = categoryMapper.selectOne(qw3).getName();
+            String categoryName = categoryService.getOne(qw3).getName();
 
             setmealDto.setSetmealDishes(setmealDishList);
             setmealDto.setCategoryName(categoryName);
@@ -101,19 +85,7 @@ public class SetmealController {
     @DeleteMapping
     @CacheEvict(value = "setmealCache", allEntries = true)
     public R<String> delete(@RequestParam List<Long> ids) {
-        for (Long id : ids) {
-            Setmeal setmeal = setmealMapper.selectById(id);
-            if (setmeal.getStatus() == 1) {
-                R.error("套餐"+ setmeal.getName() + "正在售卖，不能删除");
-            }
-        }
-
-        for (Long id : ids) {
-            setmealMapper.deleteById(id);
-            LambdaQueryWrapper<SetmealDish> qw = new LambdaQueryWrapper<>();
-            qw.eq(SetmealDish::getSetmealId, id);
-            setmealDishMapper.delete(qw);
-        }
+        setmealService.removeWithDish(ids);
         return R.success("套餐数据删除成功");
     }
 
@@ -127,7 +99,7 @@ public class SetmealController {
         LambdaQueryWrapper<Setmeal> qw = new LambdaQueryWrapper<>();
         qw.eq(setmeal.getCategoryId() != null, Setmeal::getCategoryId, setmeal.getCategoryId());
         qw.eq(setmeal.getStatus() != null, Setmeal::getStatus, setmeal.getStatus());
-        List<Setmeal> setmealList = setmealMapper.selectList(qw);
+        List<Setmeal> setmealList = setmealService.list(qw);
         return R.success(setmealList);
     }
 
@@ -137,13 +109,13 @@ public class SetmealController {
     @PostMapping("/status/{status}")
     @CacheEvict(value = "setmealCache", allEntries = true)
     public R<String> updateStatus(@PathVariable Integer status, @RequestParam Long ids) {
-        Setmeal setmeal = setmealMapper.selectById(ids);
+        Setmeal setmeal = setmealService.getById(ids);
         if (setmeal == null) {
             return R.error("该套餐不存在");
         }
 
         setmeal.setStatus(status);
-        setmealMapper.updateById(setmeal);
+        setmealService.updateById(setmeal);
         return R.success("修改成功");
     }
 }

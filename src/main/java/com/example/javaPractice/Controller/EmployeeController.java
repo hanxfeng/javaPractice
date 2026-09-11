@@ -6,22 +6,18 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.javaPractice.Entity.Employee;
 import com.example.javaPractice.Entity.R;
 import com.example.javaPractice.Service.EmployeeService;
-import com.example.javaPractice.mapper.EmployeeMapper;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-
 @Slf4j
 @RestController
 @RequestMapping("/employee")
 public class EmployeeController {
     @Autowired
-    private EmployeeMapper employeeMapper;
+    private EmployeeService employeeService;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -37,7 +33,7 @@ public class EmployeeController {
 
         LambdaQueryWrapper<Employee> qw = new LambdaQueryWrapper<>();
         qw.eq(Employee::getName, name);
-        Employee sqlEmployee = employeeMapper.selectOne(qw);
+        Employee sqlEmployee = employeeService.getOne(qw);
 
         if (sqlEmployee == null) {
             return R.error("登陆失败，该用户不存在");
@@ -73,11 +69,11 @@ public class EmployeeController {
     public R<String> save(HttpSession session, @RequestBody Employee employee) {
         LambdaQueryWrapper<Employee> qw = new LambdaQueryWrapper<>();
         qw.eq(Employee::getName, employee.getName());
-        if (employeeMapper.selectOne(qw) != null) {
+        if (employeeService.getOne(qw) != null) {
             return R.error("该 name 已存在");
         }
         employee.setPassword(passwordEncoder.encode(employee.getPassword()));
-        employeeMapper.insert(employee);
+        employeeService.save(employee);
         return R.success("新增员工成功");
     }
 
@@ -92,10 +88,10 @@ public class EmployeeController {
         if (name != null) {
             LambdaQueryWrapper<Employee> qw = new LambdaQueryWrapper<>();
             qw.like(Employee::getName, name);
-            pageEmployee = employeeMapper.selectPage(newPage,qw);
+            pageEmployee = employeeService.page(newPage,qw);
         }
         else {
-            pageEmployee = employeeMapper.selectPage(newPage, null);
+            pageEmployee = employeeService.page(newPage, null);
         }
 
         return R.success(pageEmployee);
@@ -106,8 +102,8 @@ public class EmployeeController {
      */
     @PutMapping
     public R<String> update(HttpSession session, @RequestBody Employee employee) {
-        if (employeeMapper.selectById(employee) != null) {
-            employeeMapper.updateById(employee);
+        if (employeeService.getById(employee.getId()) != null) {
+            employeeService.updateById(employee);
         }
         else {
             return R.error("该员工不存在");
@@ -120,7 +116,7 @@ public class EmployeeController {
      */
     @GetMapping("/{id}")
     public R<Employee> getById(@PathVariable Long id) {
-        Employee employee = employeeMapper.selectById(id);
+        Employee employee = employeeService.getById(id);
         if (employee != null) {
             return R.success(employee);
         }

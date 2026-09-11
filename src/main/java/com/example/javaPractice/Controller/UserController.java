@@ -1,11 +1,9 @@
 package com.example.javaPractice.Controller;
 
-import ch.qos.logback.core.testUtil.RandomUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.example.javaPractice.Entity.R;
 import com.example.javaPractice.Entity.User;
 import com.example.javaPractice.Service.UserService;
-import com.example.javaPractice.mapper.UserMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -25,7 +23,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class UserController {
     @Autowired
-    private UserMapper userMapper;
+    private UserService userService;
 
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
@@ -50,20 +48,20 @@ public class UserController {
         String code = user.get("code");
 
         String redisCode = stringRedisTemplate.opsForValue().get(phone);
-        if (redisCode != null && Objects.equals(code, redisCode)) {
+        if (redisCode == null || !Objects.equals(code, redisCode)) {
             return R.error("验证码或手机号错误");
         }
 
         LambdaQueryWrapper<User> qw = new LambdaQueryWrapper<>();
         qw.eq(User::getPhone, phone);
-        User loginUser = userMapper.selectOne(qw);
+        User loginUser = userService.getOne(qw);
         if (loginUser == null) {
             User newUser = new User();
             newUser.setPhone(phone);
             newUser.setStatus(1);
-            userMapper.insert(newUser);
+            userService.save(newUser);
         }
-        loginUser = userMapper.selectOne(qw);
+        loginUser = userService.getOne(qw);
         session.setAttribute("user", loginUser.getId());
         stringRedisTemplate.delete(phone);
         return R.success(loginUser);

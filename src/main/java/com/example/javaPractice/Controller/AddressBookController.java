@@ -5,18 +5,16 @@ import com.example.javaPractice.Config.BaseContext;
 import com.example.javaPractice.Entity.AddressBook;
 import com.example.javaPractice.Entity.R;
 import com.example.javaPractice.Service.AddressBookService;
-import com.example.javaPractice.mapper.AddressBookMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Objects;
 
 @RestController
 @RequestMapping("/addressBook")
 public class AddressBookController {
     @Autowired
-    private AddressBookMapper addressBookMapper;
+    private AddressBookService addressBookService;
 
     /**
      * 新增地址簿
@@ -28,7 +26,7 @@ public class AddressBookController {
         Long userId = BaseContext.getCurrentId();
 
         addressBook.setUserId(userId);
-        addressBookMapper.insert(addressBook);
+        addressBookService.save(addressBook);
         return R.success(addressBook);
     }
 
@@ -38,23 +36,7 @@ public class AddressBookController {
     @PutMapping("default")
     // 已检查，书写正确
     public R<AddressBook> setDefault(@RequestBody AddressBook a) {
-        // 获取 userId
-        Long userId = BaseContext.getCurrentId();
-        Long id = a.getId();
-
-        // 将之前的默认地址设置为 0
-        LambdaQueryWrapper<AddressBook> qw = new LambdaQueryWrapper<>();
-        qw.eq(AddressBook::getUserId, userId);
-        qw.eq(AddressBook::getIsDefault, 1);
-        AddressBook addressBook1 = addressBookMapper.selectOne(qw);
-        if (addressBook1 != null) {
-            addressBook1.setIsDefault(0);
-            addressBookMapper.updateById(addressBook1);
-        }
-
-        AddressBook addressBook = addressBookMapper.selectById(id);
-        addressBook.setIsDefault(1);
-        addressBookMapper.updateById(addressBook);
+        AddressBook addressBook = addressBookService.setDefault(a.getId());
         return R.success(addressBook);
      }
 
@@ -64,7 +46,7 @@ public class AddressBookController {
     @GetMapping("/{id}")
     // 已检查，书写正确
     public R<AddressBook> get(@PathVariable Long id) {
-        AddressBook addressBook = addressBookMapper.selectById(id);
+        AddressBook addressBook = addressBookService.getById(id);
         if (addressBook != null) {
             return R.success(addressBook);
         }
@@ -86,7 +68,7 @@ public class AddressBookController {
         LambdaQueryWrapper<AddressBook> qw = new LambdaQueryWrapper<>();
         qw.eq(AddressBook::getUserId, userId);
         qw.eq(AddressBook::getIsDefault, 1);
-        AddressBook addressBook = addressBookMapper.selectOne(qw);
+        AddressBook addressBook = addressBookService.getOne(qw);
         if (addressBook == null) {
             return R.error("未设置默认地址！");
         }
@@ -106,7 +88,7 @@ public class AddressBookController {
         LambdaQueryWrapper<AddressBook> qw = new LambdaQueryWrapper<>();
         qw.eq(AddressBook::getUserId, userId);
         qw.orderByDesc(AddressBook::getUpdateTime);
-        List<AddressBook> list = addressBookMapper.selectList(qw);
+        List<AddressBook> list = addressBookService.list(qw);
         if (list.isEmpty()) {
             return R.error("还未填写任何地址");
         }

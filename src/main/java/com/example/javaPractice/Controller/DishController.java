@@ -6,10 +6,10 @@ import com.example.javaPractice.Entity.Category;
 import com.example.javaPractice.Entity.Dish;
 import com.example.javaPractice.Entity.DishFlavor;
 import com.example.javaPractice.Entity.R;
+import com.example.javaPractice.Service.CategoryService;
+import com.example.javaPractice.Service.DishFlavorService;
+import com.example.javaPractice.Service.DishService;
 import com.example.javaPractice.dto.DishDto;
-import com.example.javaPractice.mapper.CategoryMapper;
-import com.example.javaPractice.mapper.DishFlavorMapper;
-import com.example.javaPractice.mapper.DishMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,13 +25,13 @@ import java.util.List;
 @Slf4j
 public class DishController {
     @Autowired
-    private DishMapper dishMapper;
+    private DishService dishService;
 
     @Autowired
-    private DishFlavorMapper dishFlavorMapper;
+    private DishFlavorService dishFlavorService;
 
     @Autowired
-    private CategoryMapper categoryMapper;
+    private CategoryService categoryService;
 
 
     /**
@@ -41,13 +41,7 @@ public class DishController {
     @CacheEvict(value = "dishCache", allEntries = true)
     public R<String> save(@RequestBody DishDto dishDto) {
         // 已检查，书写正确
-        List<DishFlavor> dishFlavors = dishDto.getFlavors();
-        dishMapper.insert(dishDto);
-
-        for (DishFlavor dishFlavor : dishFlavors) {
-            dishFlavor.setDishId(dishDto.getId());
-            dishFlavorMapper.insert(dishFlavor);
-        }
+        dishService.saveWithFlavor(dishDto);
 
         return R.success("新增菜品成功");
     }
@@ -67,7 +61,7 @@ public class DishController {
             qw.like(Dish::getName, name);
         }
 
-        Page<Dish> returnPage = dishMapper.selectPage(newPage, qw);
+        Page<Dish> returnPage = dishService.page(newPage, qw);
 
         BeanUtils.copyProperties(returnPage, dishDtoPage, "records");
 
@@ -76,7 +70,7 @@ public class DishController {
             DishDto dishDto = new DishDto();
             BeanUtils.copyProperties(item, dishDto);
             Long categoryId = item.getCategoryId();
-            Category category = categoryMapper.selectById(categoryId);
+            Category category = categoryService.getById(categoryId);
             if (category != null) {
                 dishDto.setCategoryName(category.getName());
             }
@@ -93,18 +87,10 @@ public class DishController {
     @GetMapping("/{id}")
     public R<DishDto> get(@PathVariable Long id) {
         // 已检查，书写正确
-        Dish dish = dishMapper.selectById(id);
-        if (dish == null) {
+        DishDto dishDto = dishService.getByIdWitchFlavor(id);
+        if (dishDto == null) {
             return R.error("该菜品不存在");
         }
-
-        LambdaQueryWrapper<DishFlavor> qw = new LambdaQueryWrapper<>();
-        qw.eq(DishFlavor::getDishId, id);
-        List<DishFlavor> list = dishFlavorMapper.selectList(qw);
-
-        DishDto dishDto = new DishDto();
-        BeanUtils.copyProperties(dish, dishDto);
-        dishDto.setFlavors(list);
 
         return R.success(dishDto);
     }
@@ -116,17 +102,7 @@ public class DishController {
     @CacheEvict(value = "dishCache", allEntries = true)
     public R<String> update(@RequestBody DishDto dishDto) {
         // 已检查，书写正确
-        if (dishMapper.selectById(dishDto.getId()) == null) {
-            return R.error("菜品不存在");
-        }
-        dishMapper.updateById(dishDto);
-        LambdaQueryWrapper<DishFlavor> qw = new LambdaQueryWrapper<>();
-        qw.eq(DishFlavor::getDishId, dishDto.getId());
-        dishFlavorMapper.delete(qw);
-        for (DishFlavor dishFlavor : dishDto.getFlavors()) {
-            dishFlavor.setDishId(dishDto.getId());
-            dishFlavorMapper.insert(dishFlavor);
-        }
+        dishService.updateWitchFlavor(dishDto);
         return R.success("修改菜品成功");
     }
 
@@ -145,7 +121,7 @@ public class DishController {
         LambdaQueryWrapper<Dish> qw = new LambdaQueryWrapper<>();
         qw.eq(dish.getName() != null, Dish::getName, dish.getName());
         qw.eq(dish.getCategoryId() != null, Dish::getCategoryId, dish.getCategoryId());
-        List<Dish> dishTemp = dishMapper.selectList(qw);
+        List<Dish> dishTemp = dishService.list(qw);
 
         if (dishTemp.isEmpty()) {
             return R.error("菜品不存在");
@@ -157,7 +133,7 @@ public class DishController {
 
             LambdaQueryWrapper<DishFlavor> qw2 = new LambdaQueryWrapper<>();
             qw2.eq(DishFlavor::getDishId, dish1.getId());
-            List<DishFlavor> list = dishFlavorMapper.selectList(qw2);
+            List<DishFlavor> list = dishFlavorService.list(qw2);
 
             dishDto.setFlavors(list);
             dishDtos.add(dishDto);
@@ -176,11 +152,11 @@ public class DishController {
             return R.error("错误！id 为空");
         }
 
-        if (dishMapper.selectById(ids) == null) {
+        if (dishService.getById(ids) == null) {
             return R.error("菜品不存在");
         }
 
-        dishMapper.deleteById(ids);
+        dishService.removeById(ids);
         return R.success("删除菜品成功");
     }
 }

@@ -5,7 +5,6 @@ import com.example.javaPractice.Config.BaseContext;
 import com.example.javaPractice.Entity.R;
 import com.example.javaPractice.Entity.ShoppingCart;
 import com.example.javaPractice.Service.ShoppingCartService;
-import com.example.javaPractice.mapper.ShoppingCartMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,7 +14,7 @@ import java.util.List;
 @RequestMapping("shoppingCart")
 public class ShoppingCartController {
     @Autowired
-    private ShoppingCartMapper shoppingCartMapper;
+    private ShoppingCartService shoppingCartService;
 
     // 已检查，书写正确
     /**
@@ -40,17 +39,17 @@ public class ShoppingCartController {
             qw.eq(ShoppingCart::getSetmealId, shoppingCart.getSetmealId());
         }
 
-        ShoppingCart existing = shoppingCartMapper.selectOne(qw);
+        ShoppingCart existing = shoppingCartService.getOne(qw);
         if (existing != null) {
             // 已存在，数量 +1
             existing.setNumber(existing.getNumber() + 1);
-            shoppingCartMapper.updateById(existing);
+            shoppingCartService.updateById(existing);
             return R.success(existing);
         }
 
         // 不存在，新增记录
         shoppingCart.setNumber(1);
-        shoppingCartMapper.insert(shoppingCart);
+        shoppingCartService.save(shoppingCart);
         return R.success(shoppingCart);
     }
 
@@ -76,7 +75,7 @@ public class ShoppingCartController {
             qw.eq(ShoppingCart::getSetmealId, shoppingCart.getSetmealId());
             qw.eq(ShoppingCart::getDishId, shoppingCart.getDishId());
         }
-        ShoppingCart sc = shoppingCartMapper.selectOne(qw);
+        ShoppingCart sc = shoppingCartService.getOne(qw);
 
         // 判断是否存在计数异常
         if (sc.getNumber() <= 0) {
@@ -85,13 +84,13 @@ public class ShoppingCartController {
 
         // 根据数量不同返回不同结果
         if (sc.getNumber() == 1) {
-            shoppingCartMapper.deleteById(sc);
+            shoppingCartService.removeById(sc.getId());
             sc.setNumber(sc.getNumber()-1);
             return R.success(sc);
         }
         else{
             sc.setNumber(sc.getNumber()-1);
-            shoppingCartMapper.updateById(sc);
+            shoppingCartService.updateById(sc);
             return R.success(sc);
         }
     }
@@ -109,7 +108,7 @@ public class ShoppingCartController {
         LambdaQueryWrapper<ShoppingCart> qw = new LambdaQueryWrapper<>();
         qw.eq(ShoppingCart::getUserId, userId);
         qw.orderByAsc(ShoppingCart::getCreateTime);
-        List<ShoppingCart> shoppingCarts = shoppingCartMapper.selectList(qw);
+        List<ShoppingCart> shoppingCarts = shoppingCartService.list(qw);
 
         return R.success(shoppingCarts);
     }
@@ -126,7 +125,7 @@ public class ShoppingCartController {
         // 根据用户 id 删除购物车数据
         LambdaQueryWrapper<ShoppingCart> qw = new LambdaQueryWrapper<>();
         qw.eq(ShoppingCart::getUserId, userId);
-        shoppingCartMapper.delete(qw);
+        shoppingCartService.remove(qw);
 
         return R.success("清空购物车成功");
     }
