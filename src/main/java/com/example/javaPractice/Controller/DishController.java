@@ -10,13 +10,11 @@ import com.example.javaPractice.dto.DishDto;
 import com.example.javaPractice.mapper.CategoryMapper;
 import com.example.javaPractice.mapper.DishFlavorMapper;
 import com.example.javaPractice.mapper.DishMapper;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -33,19 +31,14 @@ public class DishController {
     private DishFlavorMapper dishFlavorMapper;
 
     @Autowired
-    private StringRedisTemplate stringRedisTemplate;
-
-    @Autowired
     private CategoryMapper categoryMapper;
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
 
     /**
      * 新增菜品
      */
     @PostMapping
+    @CacheEvict(value = "dishCache", allEntries = true)
     public R<String> save(@RequestBody DishDto dishDto) {
         // 已检查，书写正确
         List<DishFlavor> dishFlavors = dishDto.getFlavors();
@@ -55,10 +48,6 @@ public class DishController {
             dishFlavor.setDishId(dishDto.getId());
             dishFlavorMapper.insert(dishFlavor);
         }
-
-        // TODO：后续进行修改
-        String key = "dish_" + dishDto.getCategoryId() + "_" + dishDto.getStatus();
-        stringRedisTemplate.delete(key);
 
         return R.success("新增菜品成功");
     }
@@ -124,6 +113,7 @@ public class DishController {
      * 修改菜品
      */
     @PutMapping
+    @CacheEvict(value = "dishCache", allEntries = true)
     public R<String> update(@RequestBody DishDto dishDto) {
         // 已检查，书写正确
         if (dishMapper.selectById(dishDto.getId()) == null) {
@@ -144,50 +134,42 @@ public class DishController {
      * 根据条件查询菜品列表
      */
     @GetMapping("/list")
-    public R<List<DishDto>> list(Dish dish) throws JsonProcessingException {
+    @Cacheable(value = "dishCache", key = "#dish.categoryId + '_' + #dish.status + '_' + #dish.name",
+            unless = "#result.code != 1")
+    public R<List<DishDto>> list(Dish dish) {
         // 已检查，书写正确
         if (dish.getName() == null && dish.getCategoryId() == null) {
             return R.error("传入参数为空");
         }
-        String key = "dish_" + dish.getCategoryId() + "_" + dish.getStatus();
-        String redisData = stringRedisTemplate.opsForValue().get(key);
-        List<DishDto> dishDtos;
-        if (redisData == null) {
-            dishDtos = new ArrayList<>();
-            LambdaQueryWrapper<Dish> qw = new LambdaQueryWrapper<>();
-            qw.eq(dish.getName() != null, Dish::getName, dish.getName());
-            qw.eq(dish.getCategoryId() != null, Dish::getCategoryId, dish.getCategoryId());
-            List<Dish> dishTemp = dishMapper.selectList(qw);
+        List<DishDto> dishDtos = new ArrayList<>();
+        LambdaQueryWrapper<Dish> qw = new LambdaQueryWrapper<>();
+        qw.eq(dish.getName() != null, Dish::getName, dish.getName());
+        qw.eq(dish.getCategoryId() != null, Dish::getCategoryId, dish.getCategoryId());
+        List<Dish> dishTemp = dishMapper.selectList(qw);
 
-            if (dishTemp.isEmpty()) {
-                return R.error("菜品不存在");
-            }
-
-            for (Dish dish1 : dishTemp) {
-                DishDto dishDto = new DishDto();
-                BeanUtils.copyProperties(dish1, dishDto);
-
-                LambdaQueryWrapper<DishFlavor> qw2 = new LambdaQueryWrapper<>();
-                qw2.eq(DishFlavor::getDishId, dish1.getId());
-                List<DishFlavor> list = dishFlavorMapper.selectList(qw2);
-
-                dishDto.setFlavors(list);
-                dishDtos.add(dishDto);
-            }
-            String writeRedis = objectMapper.writeValueAsString(dishDtos);
-            stringRedisTemplate.opsForValue().set(key, writeRedis);
-            return R.success(dishDtos);
+        if (dishTemp.isEmpty()) {
+            return R.error("菜品不存在");
         }
-        else {
-            List<DishDto> dishDtos2 = objectMapper.readValue(redisData, new TypeReference<List<DishDto>>() {});
-            return R.success(dishDtos2);
+
+        for (Dish dish1 : dishTemp) {
+            DishDto dishDto = new DishDto();
+            BeanUtils.copyProperties(dish1, dishDto);
+
+            LambdaQueryWrapper<DishFlavor> qw2 = new LambdaQueryWrapper<>();
+            qw2.eq(DishFlavor::getDishId, dish1.getId());
+            List<DishFlavor> list = dishFlavorMapper.selectList(qw2);
+
+            dishDto.setFlavors(list);
+            dishDtos.add(dishDto);
         }
+        return R.success(dishDtos);
     }
 
     /**
      * 删除菜品
      */
     @DeleteMapping
+    @CacheEvict(value = "dishCache", allEntries = true)
     public R<String> delete(Long ids) {
         // 已检查，书写正确
         if (ids == null) {

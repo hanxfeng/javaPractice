@@ -12,6 +12,8 @@ import com.example.javaPractice.mapper.CategoryMapper;
 import com.example.javaPractice.mapper.DishMapper;
 import com.example.javaPractice.mapper.SetmealMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -32,6 +34,7 @@ public class CategoryController {
      * 新增菜品或套餐分类
      */
     @PostMapping
+    @CacheEvict(value = "categoryCache", allEntries = true)
     public R<String> save(@RequestBody Category category) {
         LambdaQueryWrapper<Category> qw = new LambdaQueryWrapper<>();
         qw.eq(Category::getName, category.getName());
@@ -58,6 +61,7 @@ public class CategoryController {
      * 删除分类
      */
     @DeleteMapping
+    @CacheEvict(value = "categoryCache", allEntries = true)
     public R<String> delete(Long id) {
         LambdaQueryWrapper<Dish> qw1 = new LambdaQueryWrapper<>();
         LambdaQueryWrapper<Setmeal> qw2 = new LambdaQueryWrapper<>();
@@ -74,6 +78,7 @@ public class CategoryController {
      * 根据id修改分类信息
      */
     @PutMapping
+    @CacheEvict(value = "categoryCache", allEntries = true)
     public R<String> update(@RequestBody Category category) {
         // 已检查，书写正确
         LambdaQueryWrapper<Category> qw = new LambdaQueryWrapper<>();
@@ -91,6 +96,7 @@ public class CategoryController {
      * 根据条件查询分类数据
      */
     @GetMapping("/list")
+    @Cacheable(value = "categoryCache", key = "#category.type", unless = "#result.code != 1")
     public R<List<Category>> list(Category category) {
         // 已检查，书写正确
         Integer type = category.getType();
